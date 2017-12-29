@@ -1,5 +1,6 @@
 package com.example.personal.coolweather;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.media.Image;
@@ -21,6 +22,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.example.personal.coolweather.Service.AutoUpdateService;
 import com.example.personal.coolweather.gson.Forecast;
 import com.example.personal.coolweather.gson.Weather;
 import com.example.personal.coolweather.utils.HttpUtils;
@@ -198,6 +200,8 @@ public class WeatherActivity extends AppCompatActivity {
             String airString = "空气指数: " + weather.suggestion.air.info;
             airTextView.setText(airString);
         }
+        Intent intent = new Intent(this, AutoUpdateService.class);
+        startService(intent);
     }
 
     private void loadBingPic() {
