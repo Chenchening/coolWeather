@@ -5,12 +5,15 @@ import android.graphics.Color;
 import android.media.Image;
 import android.os.Build;
 import android.preference.PreferenceManager;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -32,7 +35,7 @@ import okhttp3.Callback;
 import okhttp3.Response;
 
 public class WeatherActivity extends AppCompatActivity {
-    private SwipeRefreshLayout swipeRefreshLayout;
+    public SwipeRefreshLayout swipeRefreshLayout;
     private String weatherId;
 
     private ScrollView weatherLayout;
@@ -53,6 +56,9 @@ public class WeatherActivity extends AppCompatActivity {
     private TextView airTextView;
 
     private ImageView bingPicImageView;
+
+    public DrawerLayout drawerLayout;
+    private Button navButton;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,14 +67,29 @@ public class WeatherActivity extends AppCompatActivity {
             decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
             getWindow().setStatusBarColor(Color.TRANSPARENT);
         }
-
-
         setContentView(R.layout.activity_weather);
-
 
         getView();
 
-        weatherId = getIntent().getStringExtra("weather_id");
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MyApplication.getContext());
+        String weatherText = preferences.getString("weather", null);
+        if (weatherText != null) {
+            Weather weather = Utility.handleWeatherResponse(weatherText);
+            weatherId = weather.basic.weatherId;
+            showWeatherInfo(weather);
+        } else {
+            weatherId = getIntent().getStringExtra("weather_id");
+            weatherLayout.setVisibility(View.INVISIBLE);
+            requestWeather(weatherId);
+        }
+        String bingPic = preferences.getString("bing_pic", null);
+        if (bingPic != null) {
+            Glide.with(this).load(bingPic).into(bingPicImageView);
+        } else {
+            loadBingPic();
+        }
+
+
         weatherLayout.setVisibility(View.VISIBLE);
 
         swipeRefreshLayout = (SwipeRefreshLayout)findViewById(R.id.swipe_refresh);
@@ -80,22 +101,12 @@ public class WeatherActivity extends AppCompatActivity {
             }
         });
 
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-
-        String weatherText = preferences.getString("weather", null);
-        if (weatherText != null) {
-            Weather weather = Utility.handleWeatherResponse(weatherText);
-            showWeatherInfo(weather);
-        } else {
-            requestWeather(weatherId);
-        }
-
-        String bingPic = preferences.getString("bing_pic", null);
-        if (bingPic != null) {
-            Glide.with(this).load(bingPic).into(bingPicImageView);
-        } else {
-            loadBingPic();
-        }
+        navButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
+        });
     }
 
     private void getView(){
@@ -112,6 +123,8 @@ public class WeatherActivity extends AppCompatActivity {
         sportTextView = (TextView)findViewById(R.id.sport_text);
         airTextView = (TextView)findViewById(R.id.air_text);
         bingPicImageView = (ImageView)findViewById(R.id.bing_pic_img);
+        drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        navButton = (Button) findViewById(R.id.nav_button);
     }
 
     public void requestWeather(final String weatherId) {
@@ -136,6 +149,7 @@ public class WeatherActivity extends AppCompatActivity {
                             SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
                             editor.putString("weather", responseText);
                             editor.apply();
+                            weatherLayout.setVisibility(View.VISIBLE);
                             showWeatherInfo(weather);
                         } else {
                             Toast.makeText(WeatherActivity.this,"获取天气信息失败", Toast.LENGTH_SHORT).show();
